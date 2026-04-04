@@ -1,0 +1,33 @@
+#include "DHT.h"
+
+#define DHTPIN 2        // Pin data ke pin 2 Arduino Mega
+#define DHTTYPE DHT22   // Tipe sensor DHT22
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Membaca sensor DHT22...");
+  dht.begin();
+}
+
+void loop() {
+  delay(2000); // Delay minimal 2 detik
+
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature(); // Celsius
+
+  // Cek apakah pembacaan gagal
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("Gagal membaca dari sensor DHT!");
+    return;
+  }
+
+  Serial.print("Kelembaban: ");
+  Serial.print(humidity);
+  Serial.print(" %\t");
+
+  Serial.print("Suhu: ");
+  Serial.print(temperature);
+  Serial.println(" *C");
+}

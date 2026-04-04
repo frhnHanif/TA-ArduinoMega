@@ -1,0 +1,40 @@
+#include <Arduino.h>
+
+// Definisi Pin
+const int potPin = A0;    // Pin Analog untuk membaca nilai kelembapan
+const int digitalPin = 2; // Pin Digital untuk membaca threshold (ambang batas)
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(digitalPin, INPUT); // Set pin digital sebagai input
+  Serial.println("--- Sensor Kelembapan Tanah Siap ---");
+}
+
+void loop() {
+  // 1. Membaca Nilai Analog (0 - 1023)
+  int sensorValue = analogRead(potPin);
+
+  // 2. Mengonversi ke Persentase (Opsional)
+  // Catatan: Sensor ini biasanya terbalik (1023 = kering, 0 = sangat basah)
+  // Kita gunakan map(value, fromLow, fromHigh, toLow, toHigh)
+  int moisturePercent = map(sensorValue, 1023, 0, 0, 100);
+
+  // 3. Membaca Nilai Digital (0 atau 1)
+  // Nilai 0 (LOW) biasanya berarti tanah basah (melewati batas sensitivitas)
+  int digitalValue = digitalRead(digitalPin);
+
+  // Menampilkan hasil ke Serial Monitor
+  Serial.print("Analog: ");
+  Serial.print(sensorValue);
+  Serial.print(" | Persentase: ");
+  Serial.print(moisturePercent);
+  Serial.print("% | Status Digital: ");
+  
+  if (digitalValue == LOW) {
+    Serial.println("BASAH");
+  } else {
+    Serial.println("KERING");
+  }
+
+  delay(1000); // Tunggu 1 detik sebelum pembacaan berikutnya
+}
