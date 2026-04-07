@@ -1,0 +1,31 @@
+// --- KODE ARDUINO MEGA ---
+
+unsigned long waktuTerakhir = 0;
+
+void setup() {
+  // Serial Monitor untuk PC
+  Serial.begin(115200);
+  
+  // Komunikasi Serial1 ke ESP32 (Pin 18 Tx, Pin 19 Rx)
+  Serial1.begin(9600);
+  
+  Serial.println("Tes Komunikasi Mega Dimulai...");
+}
+
+void loop() {
+  // 1. Mengirim "PING" setiap 2 detik
+  if (millis() - waktuTerakhir > 2000) {
+    Serial1.println("PING dari Mega!");
+    Serial.println("Mega: Mengirim PING...");
+    waktuTerakhir = millis();
+  }
+
+  // 2. Mendengarkan balasan dari ESP32
+  if (Serial1.available()) {
+    // Membaca pesan sampai menemukan Enter (ganti baris)
+    String pesanMasuk = Serial1.readStringUntil('\n'); 
+    
+    Serial.print("ESP32 Membalas: ");
+    Serial.println(pesanMasuk);
+  }
+}
