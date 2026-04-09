@@ -1,0 +1,96 @@
+#include <ArduinoJson.h>
+
+// ==========================================
+// 1. DEKLARASI PIN AKTUATOR & VARIABEL
+// ==========================================
+const int pinMist[6] = {4, 5, 6, 7, 8, 9}; // Relay Mist Maker di Pin D4 - D9
+const int pinFan = 3;                      // Modul Dual MOSFET Fan di Pin D3 (PWM)
+
+// Konfigurasi Relay (Biasanya Active LOW, ubah ke HIGH jika terbalik)
+const int RELAY_ON = LOW;  
+const int RELAY_OFF = HIGH; 
+
+// Variabel Timer (Pengganti delay)
+unsigned long previousMillis = 0;
+const long interval = 5000; // Interval kirim data (5 detik)
+
+void setup() {
+  Serial.begin(115200); 
+  Serial1.begin(9600);  // Kecepatan wajib 9600 untuk komunikasi ke ESP32
+  
+  // Set pin Mist Maker sebagai OUTPUT dan matikan di awal
+  for (int i = 0; i < 6; i++) {
+    pinMode(pinMist[i], OUTPUT);
+    digitalWrite(pinMist[i], RELAY_OFF); 
+  }
+  
+  // Set pin Fan sebagai OUTPUT dan matikan di awal
+  pinMode(pinFan, OUTPUT);
+  analogWrite(pinFan, 0); 
+  
+  randomSeed(analogRead(0));
+  Serial.println("Sistem Mega Ready! Mengirim 5 detik sekali & Siaga perintah...");
+}
+
+void loop() {
+  // ==========================================
+  // TAHAP 1: MENDENGARKAN PERINTAH DARI ESP32
+  // ==========================================
+  if (Serial1.available()) {
+    String commandJson = Serial1.readStringUntil('\n');
+    commandJson.trim();
+    
+    // Pastikan format JSON utuh sebelum dieksekusi
+    if (commandJson.startsWith("{") && commandJson.endsWith("}")) {
+      StaticJsonDocument<256> docControl;
+      DeserializationError error = deserializeJson(docControl, commandJson);
+      
+      if (!error) {
+        Serial.println("Perintah Web Masuk: " + commandJson);
+        
+        // Eksekusi 6x Mist Maker
+        for (int i = 0; i < 6; i++) {
+          int state = docControl["mist"][i]; 
+          digitalWrite(pinMist[i], state == 1 ? RELAY_ON : RELAY_OFF);
+        }
+        
+        // Eksekusi Kipas (Konversi Persen 0-100 ke PWM 0-255)
+        int fanPercent = docControl["fan"];
+        int pwmValue = map(fanPercent, 0, 100, 0, 255);
+        analogWrite(pinFan, pwmValue);
+        
+        Serial.println("Status Diperbarui -> Kipas: " + String(fanPercent) + "% (PWM: " + String(pwmValue) + ")");
+      }
+    }
+  }
+
+  // ==========================================
+  // TAHAP 2: MENGIRIM DATA SENSOR (TANPA DELAY)
+  // ==========================================
+  unsigned long currentMillis = millis();
+
+  // Jika selisih waktu sekarang dan sebelumnya sudah 5 detik...
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis; // Reset timer
+
+    StaticJsonDocument<512> docSensor;
+
+    // Membuat array untuk 6 loadcell biopond
+    JsonArray biopond = docSensor.createNestedArray("biopond");
+    for(int i = 0; i < 6; i++) {
+      biopond.add(random(1000, 5000)); 
+    }
+
+    docSensor["harvest"] = random(0, 2000);         
+    docSensor["temp"] = random(250, 350) / 10.0;    
+    docSensor["hum"] = random(600, 850) / 10.0;     
+    docSensor["soil"] = random(40, 80);             
+    docSensor["ammonia"] = random(5, 50);           
+
+    // Kirim data ke ESP32
+    serializeJson(docSensor, Serial1);
+    Serial1.println();
+    
+    Serial.println("Data sensor dummy terkirim ke ESP32.");
+  }
+}
