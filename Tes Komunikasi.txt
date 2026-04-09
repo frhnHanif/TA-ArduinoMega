@@ -1,0 +1,46 @@
+#include <ArduinoJson.h>
+
+void setup() {
+  // Serial untuk debugging di Serial Monitor laptop (via kabel USB)
+  Serial.begin(115200); 
+  
+  // Serial1 untuk komunikasi ke ESP32 (TX1: Pin 18, RX1: Pin 19)
+  Serial1.begin(9600);  
+  
+  // Inisialisasi seed random
+  randomSeed(analogRead(0));
+  
+  Serial.println("======================================");
+  Serial.println("Sistem Mega Ready. Mengirim data tiap 5 detik...");
+  Serial.println("======================================");
+}
+
+void loop() {
+  // Alokasi memori untuk JSON document
+  StaticJsonDocument<512> doc;
+
+  // Membuat array untuk 6 loadcell biopond
+  JsonArray biopond = doc.createNestedArray("biopond");
+  for(int i = 0; i < 6; i++) {
+    biopond.add(random(1000, 5000)); // Dummy berat 1000g - 5000g
+  }
+
+  // Data single
+  doc["harvest"] = random(0, 2000);         // Dummy panen 0g - 2000g
+  doc["temp"] = random(250, 350) / 10.0;    // Dummy suhu 25.0C - 35.0C
+  doc["hum"] = random(600, 850) / 10.0;     // Dummy kelembaban 60.0% - 85.0%
+  doc["soil"] = random(40, 80);             // Dummy kelembaban tanah 40% - 80%
+  doc["ammonia"] = random(5, 50);           // Dummy amonia 5ppm - 50ppm
+
+  // --- BAGIAN PRINT KE TERMINAL ---
+  Serial.print("Mengirim ke ESP32: ");
+  serializeJson(doc, Serial); // Print format JSON ke Serial Monitor
+  Serial.println(); // Ganti baris agar rapi
+  // --------------------------------
+
+  // Kirim data JSON ke ESP32 via Serial1
+  serializeJson(doc, Serial1);
+  Serial1.println();
+
+  delay(5000); // Kirim data setiap 5 detik
+}
