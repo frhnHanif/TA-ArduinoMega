@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ArduinoJson.h>
 
 void setup() {
@@ -8,17 +9,16 @@ void setup() {
 }
 
 void loop() {
-  // Syntax ArduinoJson v7: Cukup gunakan JsonDocument (ukuran memori otomatis diatur)
-  JsonDocument doc; 
+  StaticJsonDocument<1024> doc; // Kapasitas diperbesar untuk array
 
-  // 1. Data Berat Biopond (Loadcell) - Syntax v7
-  JsonArray biopond = doc["biopond"].to<JsonArray>();
+  // 1. Data Berat Biopond (Loadcell)
+  JsonArray biopond = doc.createNestedArray("biopond");
   for(int i = 0; i < 6; i++) {
     biopond.add(random(1000, 5000)); 
   }
 
-  // 2. Data Kelembapan Tanah (6 Sensor Berbeda) - Syntax v7
-  JsonArray soil = doc["soil"].to<JsonArray>();
+  // 2. Data Kelembapan Tanah (6 Sensor Berbeda)
+  JsonArray soil = doc.createNestedArray("soil");
   for(int i = 0; i < 6; i++) {
     soil.add(random(30, 90)); // Dummy kelembapan tanah 30% - 90%
   }
