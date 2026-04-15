@@ -1,0 +1,120 @@
+#include <ArduinoJson.h>
+
+// --- DEFINISI PIN KIPAS (L293D) ---
+const int enableA = 9;  // PWM Kipas Kiri
+const int input1 = 8;    
+const int input2 = 7;    
+const int enableB = 6;  // PWM Kipas Kanan
+const int input3 = 5;    
+const int input4 = 4;    
+
+// --- DEFINISI PIN RELAY MIST MAKER ---
+const int relayPins[] = {22, 24, 26, 28, 30, 32};
+const int jumlahRelay = 6;
+
+const int RELAY_ON = LOW;  // Active Low
+const int RELAY_OFF = HIGH;
+
+// --- VARIABEL TIMER (Pengganti Delay) ---
+unsigned long previousMillis = 0;
+const long intervalSensor = 5000; // Kirim sensor tiap 5 detik
+
+void setup() {
+  Serial.begin(115200);   // Untuk Serial Monitor Laptop
+  Serial1.begin(9600);    // Untuk Komunikasi ke ESP32 (TX1=18, RX1=19)
+
+  // 1. Setup Kipas L293D
+  pinMode(enableA, OUTPUT);
+  pinMode(input1, OUTPUT);
+  pinMode(input2, OUTPUT);
+  pinMode(enableB, OUTPUT);
+  pinMode(input3, OUTPUT);
+  pinMode(input4, OUTPUT);
+
+  // Set arah putaran kipas (Maju terus)
+  digitalWrite(input1, HIGH);
+  digitalWrite(input2, LOW);
+  digitalWrite(input3, HIGH);
+  digitalWrite(input4, LOW);
+  
+  // Matikan kipas di awal
+  analogWrite(enableA, 0);
+  analogWrite(enableB, 0);
+
+  // 2. Setup Relay Mist Maker
+  for (int i = 0; i < jumlahRelay; i++) {
+    pinMode(relayPins[i], OUTPUT);
+    digitalWrite(relayPins[i], RELAY_OFF); 
+  }
+
+  randomSeed(analogRead(0));
+  Serial.println("Sistem Mega Siap! Menunggu instruksi ESP32...");
+}
+
+void loop() {
+  // =========================================================
+  // TUGAS 1: BACA PERINTAH DARI ESP32 (NON-BLOCKING)
+  // =========================================================
+  if (Serial1.available()) {
+    String commandJson = Serial1.readStringUntil('\n');
+    commandJson.trim();
+
+    // Validasi JSON
+    if (commandJson.startsWith("{") && commandJson.endsWith("}")) {
+      StaticJsonDocument<256> docControl;
+      DeserializationError error = deserializeJson(docControl, commandJson);
+
+      if (!error) {
+        Serial.println(">> Menerima Perintah: " + commandJson);
+
+        // 1. Eksekusi 6 Relay Mist Maker
+        for (int i = 0; i < jumlahRelay; i++) {
+          int state = docControl["mist"][i];
+          digitalWrite(relayPins[i], state == 1 ? RELAY_ON : RELAY_OFF);
+        }
+
+        // 2. Eksekusi Kecepatan Kipas
+        int fanPercent = docControl["fan"];
+        int pwmValue = map(fanPercent, 0, 100, 0, 255); // Konversi % ke PWM
+        
+        analogWrite(enableA, pwmValue);
+        analogWrite(enableB, pwmValue);
+
+        Serial.print("   Status Diperbarui -> Kipas: ");
+        Serial.print(fanPercent);
+        Serial.println("%");
+      }
+    }
+  }
+
+  // =========================================================
+  // TUGAS 2: KIRIM DATA SENSOR DUMMY (SETIAP 5 DETIK)
+  // =========================================================
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= intervalSensor) {
+    previousMillis = currentMillis;
+
+    StaticJsonDocument<512> docSensor;
+
+    // Array Biopond (Massa)
+    JsonArray biopond = docSensor.createNestedArray("biopond");
+    for(int i = 0; i < 6; i++) biopond.add(random(1000, 5000)); 
+
+    // Array Soil Moisture (6 Sensor)
+    JsonArray soil = docSensor.createNestedArray("soil");
+    for(int i = 0; i < 6; i++) soil.add(random(40, 80)); 
+
+    // Sensor Lainnya
+    docSensor["harvest"] = random(0, 500);         
+    docSensor["temp"] = random(280, 350) / 10.0;    
+    docSensor["hum"] = random(600, 850) / 10.0;     
+    docSensor["ammonia"] = random(10, 45);           
+
+    // Kirim JSON ke ESP32
+    serializeJson(docSensor, Serial1);
+    Serial1.println(); // Wajib diakhiri newline agar ESP32 tahu pesan selesai
+    
+    Serial.println("<< Data Sensor Terkirim ke ESP32");
+  }
+}

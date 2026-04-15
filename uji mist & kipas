@@ -1,0 +1,67 @@
+#include <Arduino.h>
+
+// --- Definisi Pin Kipas (L293D) ---
+const int enableA = 9; 
+const int input1 = 8;    
+const int input2 = 7;    
+const int enableB = 6; 
+const int input3 = 5;    
+const int input4 = 4;    
+
+// --- Definisi Pin Relay (Gunakan Pin 22-32 pada Mega) ---
+const int relayPins[] = {22, 24, 26, 28, 30, 32};
+const int jumlahRelay = 6;
+
+void setup() {
+  // Setup Pin Kipas
+  pinMode(enableA, OUTPUT);
+  pinMode(input1, OUTPUT);
+  pinMode(input2, OUTPUT);
+  pinMode(enableB, OUTPUT);
+  pinMode(input3, OUTPUT);
+  pinMode(input4, OUTPUT);
+
+  // Setup Pin Relay menggunakan Loop
+  for (int i = 0; i < jumlahRelay; i++) {
+    pinMode(relayPins[i], OUTPUT);
+    digitalWrite(relayPins[i], HIGH); // Matikan relay (Relay modul biasanya Active Low)
+  }
+
+  // Set arah putaran kipas
+  digitalWrite(input1, HIGH);
+  digitalWrite(input2, LOW);
+  digitalWrite(input3, HIGH);
+  digitalWrite(input4, LOW);
+  
+  Serial.begin(115200);
+  Serial.println("Sistem Siap! Memulai Loop...");
+}
+
+void loop() {
+  // --- 1. NYALAKAN RELAY BERGANTIAN (5 Detik Per Relay) ---
+  for (int i = 0; i < jumlahRelay; i++) {
+    Serial.print("Relay "); Serial.print(i + 1); Serial.println(" ON");
+    
+    digitalWrite(relayPins[i], LOW);  // Nyalakan relay (LOW = ON untuk kebanyakan modul)
+    delay(5000);                      // Tunggu 5 detik
+    digitalWrite(relayPins[i], HIGH); // Matikan relay
+  }
+
+  // --- 2. NYALAKAN SEMUA KIPAS (10 Detik) ---
+  Serial.println("Semua Kipas ON (Kecepatan Maksimal)...");
+  analogWrite(enableA, 255);
+  analogWrite(enableB, 255);
+  delay(10000); // Kipas nyala 10 detik
+
+  // --- 3. MATIKAN SEMUA (Persiapan Looping Kembali) ---
+  Serial.println("Semua Sistem OFF. Menunggu...");
+  analogWrite(enableA, 0);
+  analogWrite(enableB, 0);
+  
+  // Pastikan semua relay mati
+  for (int i = 0; i < jumlahRelay; i++) {
+    digitalWrite(relayPins[i], HIGH);
+  }
+  
+  delay(2000); // Jeda singkat sebelum mulai dari Relay 1 lagi
+}
