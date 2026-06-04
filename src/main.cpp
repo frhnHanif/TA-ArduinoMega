@@ -1,79 +1,59 @@
-#include <Arduino.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <DHT.h>
+/*
+ * Program Uji Coba Pembacaan MQ-135 (Amonia) Mandiri
+ * Hardware: Arduino Mega
+ */
 
-// Konfigurasi Sensor DHT22
-#define DHTPIN 22
-#define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE);
+const int mq135Pin = A0;   
+const float RL = 1.0;      // Resistor bawaan modul 1 kOhm (kode 102)
 
-// Konfigurasi LCD I2C (Alamat I2C umumnya 0x27, kadang 0x3F)
-// Format: LiquidCrystal_I2C(Alamat, Jumlah Kolom, Jumlah Baris)
-LiquidCrystal_I2C lcd(0x27, 16, 4); 
+// --- MASUKKAN NILAI Ro DARI HASIL KALIBRASI DI SINI ---
+const float Ro = 4.25;     // Contoh: Ganti dengan angka Ro milikmu
+
+// Konstanta Kurva Amonia (NH3) hasil ekstraksi mandiri
+const float konstanta_A = 100.8504;
+const float konstanta_B = -2.45847;
 
 void setup() {
-  // Inisialisasi Serial Monitor dengan baud rate 115200
-  Serial.begin(115200);
-  Serial.println("Sistem Memulai...");
-
-  // Inisialisasi Sensor DHT
-  dht.begin();
-
-  // Inisialisasi LCD
-  lcd.init();
-  lcd.backlight();
+  Serial.begin(9600);      // Serial Monitor (ke PC)
   
-  // Menampilkan pesan pembuka di LCD
-  lcd.setCursor(0, 0);
-  lcd.print("Sistem Memulai");
-  lcd.setCursor(0, 1);
-  lcd.print("Membaca Sensor..");
-  delay(2000);
-  lcd.clear();
+  Serial.println("Memulai sistem pemantauan Amonia...");
+  Serial.println("Tunggu sebentar...");
+  
+  // Pemanasan singkat saat alat baru dihidupkan
+  delay(10000); 
 }
 
 void loop() {
-  // DHT22 membutuhkan waktu sekitar 2 detik antar pembacaan
-  delay(2000);
-
-  // Membaca kelembaban dan suhu (Celcius)
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  // Mengecek apakah pembacaan sensor gagal
-  if (isnan(h) || isnan(t)) {
-    Serial.println("Gagal membaca dari sensor DHT!");
-    
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Error Sensor DHT");
-    return;
+  // 1. Membaca Sensor (Rata-rata 50 sampel agar stabil)
+  long totalAdc = 0;
+  for(int i = 0; i < 50; i++){
+    totalAdc += analogRead(mq135Pin);
+    delay(5);
   }
-
-  // Menampilkan data di Serial Monitor (Terminal)
-  Serial.print("Suhu: ");
-  Serial.print(t);
-  Serial.print(" *C\t");
-  Serial.print("Kelembaban: ");
-  Serial.print(h);
-  Serial.println(" %");
-
-  // Menampilkan data di LCD 16x4
-  lcd.setCursor(0, 0);
-  lcd.print("Monitoring Suhu");
+  float rataRataAdc = totalAdc / 50.0;
   
-  lcd.setCursor(0, 1);
-  lcd.print("Suhu : ");
-  lcd.print(t, 1); // Menampilkan 1 angka di belakang koma
-  lcd.print(" C");
-
-  lcd.setCursor(0, 2);
-  lcd.print("Lembab: ");
-  lcd.print(h, 1); // Menampilkan 1 angka di belakang koma
-  lcd.print(" %");
+  // 2. Perhitungan Tegangan dan Rs
+  float tegangan = rataRataAdc * (5.0 / 1023.0);
   
-  // Baris ke-4 (index 3) dibiarkan kosong atau bisa diisi status lain
-  lcd.setCursor(0, 3);
-  lcd.print("Status: Normal");
+  // Mencegah error pembagian dengan nol (jika tegangan 0)
+  if (tegangan == 0) tegangan = 0.001; 
+  
+  float Rs = RL * ((5.0 - tegangan) / tegangan);
+  
+  // 3. Menghitung Rasio dan Konversi ke ppm Amonia
+  float rasio = Rs / Ro;
+  float ppmAmonia = konstanta_A * pow(rasio, konstanta_B);
+  
+  // 4. Menampilkan Hasil ke Serial Monitor
+  Serial.println("===============================");
+  Serial.print("Tegangan (V)   : ");
+  Serial.println(tegangan, 2);
+  Serial.print("Rasio (Rs/Ro)  : ");
+  Serial.println(rasio, 2);
+  Serial.print("Kadar Amonia   : ");
+  Serial.print(ppmAmonia, 2);
+  Serial.println(" ppm");
+  Serial.println("===============================\n");
+  
+  delay(2000); // Tampilkan data setiap 2 detik
 }
