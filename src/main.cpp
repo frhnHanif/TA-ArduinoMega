@@ -133,7 +133,8 @@ void setup() {
 // 4. RUTINITAS SENSOR & KOMUNIKASI
 // ==========================================
 void sendSensorData() {
-  StaticJsonDocument<512> doc;
+  // Update untuk ArduinoJson v7
+  JsonDocument doc;
 
   // -- 1. DHT22 --
   float t = dht.readTemperature();
@@ -162,7 +163,8 @@ void sendSensorData() {
   doc["ammonia"] = ppmAmonia;
 
   // -- 3. Soil Moisture --
-  JsonArray soil = doc.createNestedArray("soil");
+  // Update untuk ArduinoJson v7
+  JsonArray soil = doc["soil"].to<JsonArray>();
   for (int i = 0; i < 6; i++) {
     int soil_raw = analogRead(listSensor[i].pin);
     float pct = hitungKadarAir(soil_raw, listSensor[i]);
@@ -170,7 +172,8 @@ void sendSensorData() {
   }
 
   // -- 4. Load Cell Biopond --
-  JsonArray biopond = doc.createNestedArray("biopond");
+  // Update untuk ArduinoJson v7
+  JsonArray biopond = doc["biopond"].to<JsonArray>();
   for (int i = 0; i < 6; i++) {
     float massa_bio = biopond_lc[i].getData(); // Sifatnya instan karena update() jalan di loop
     biopond.add(massa_bio > 0 ? massa_bio : 0.0);
@@ -195,7 +198,8 @@ void receiveControlData() {
   if (Serial1.available()) {
     String input = Serial1.readStringUntil('\n');
 
-    StaticJsonDocument<256> doc;
+    // Update untuk ArduinoJson v7
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, input);
 
     if (error) return;
