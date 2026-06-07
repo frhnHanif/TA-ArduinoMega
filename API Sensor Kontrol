@@ -10,7 +10,7 @@ const int pinFan = 3;                      // Modul Dual MOSFET Fan di Pin D3 (P
 const int RELAY_ON = LOW;  
 const int RELAY_OFF = HIGH; 
 
-// Variabel Timer (Pengganti delay)
+// Variabel Timer (Penggasnti delay)
 unsigned long previousMillis = 0;
 const long interval = 5000; // Interval kirim data (5 detik)
 
