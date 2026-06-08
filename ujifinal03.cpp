@@ -211,7 +211,8 @@ void receiveControlData() {
     for (int i = 0; i < 6; i++) {
       float mistDurationSec = mist[i]; // Didapat dari logika Fuzzy (Misal: 6.5)
       
-      if (mistDurationSec > 0.0) {
+      // Abaikan jika nilai durasi di bawah 2 detik (dianggap 0/mati)
+      if (mistDurationSec >= 2.0) {
         digitalWrite(mistPins[i], HIGH);
         mistActive[i] = true;
         // Kalkulasi waktu mati = waktu sekarang + durasi konversi ke ms
