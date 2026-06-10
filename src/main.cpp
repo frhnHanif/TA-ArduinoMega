@@ -51,7 +51,7 @@ const float bio_cal[6] = {105.389900, 107.378623, 103.403343, 104.197036, 106.36
 HX711_ADC harvest_lc(49, 51);
 const float harvest_cal = 100.411346;
 
-// --- AKTUATOR: MIST (RELAY ACTIVE HIGH) ---
+// --- AKTUATOR: MIST (RELAY ACTIVE LOW) ---
 const int mistPins[6] = {8, 9, 10, 11, 12, 13};
 unsigned long mistTurnOffTime[6] = {0}; // Menyimpan target waktu millis() relay dimatikan
 bool mistActive[6] = {false};           // Status apakah mist sedang menyala
@@ -114,10 +114,10 @@ void setup() {
   harvest_lc.start(2000, true);
   harvest_lc.setCalFactor(harvest_cal);
 
-  // Inisialisasi Aktuator Mist
+  // Inisialisasi Aktuator Mist (Relay Active Low)
   for (int i = 0; i < 6; i++) {
     pinMode(mistPins[i], OUTPUT);
-    digitalWrite(mistPins[i], LOW);
+    digitalWrite(mistPins[i], HIGH); // HIGH berarti relay MATI
   }
 
   // Inisialisasi Motor Fan
@@ -213,7 +213,7 @@ void receiveControlData() {
       
       // Abaikan jika nilai durasi di bawah 2 detik (dianggap 0/mati)
       if (mistDurationSec >= 2.0) {
-        digitalWrite(mistPins[i], HIGH);
+        digitalWrite(mistPins[i], LOW); // LOW berarti relay NYALA (Active Low)
         mistActive[i] = true;
         // Kalkulasi waktu mati = waktu sekarang + durasi konversi ke ms
         mistTurnOffTime[i] = millis() + (unsigned long)(mistDurationSec * 1000); 
@@ -249,7 +249,7 @@ void loop() {
   // 2. CHECK TIMER MIST MAKER
   for(int i = 0; i < 6; i++) {
     if (mistActive[i] && (millis() >= mistTurnOffTime[i])) {
-      digitalWrite(mistPins[i], LOW);
+      digitalWrite(mistPins[i], HIGH); // HIGH berarti relay MATI (Active Low)
       mistActive[i] = false;
       Serial.print("[TIMER] Mist R"); Serial.print(i + 1); Serial.println(" OFF Otomatis.");
     }
