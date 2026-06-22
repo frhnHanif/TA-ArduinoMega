@@ -11,6 +11,8 @@
 #define DHTPIN 26
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+const float TEMP_OFFSET = -1.52;
+const float HUM_OFFSET = -3.28;
 
 // --- MQ-135 ---
 #define MQ135_PIN A6
@@ -137,11 +139,8 @@ void sendSensorData() {
   // -- 1. DHT22 --
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  
-  // Kalibrasi Regresi Linear
-  if (isnan(t)) t = 0.0; else t = (0.8198 * t) + 4.1421;
-  if (isnan(h)) h = 0.0; else h = (0.6249 * h) + 22.7425;
-  
+  if (isnan(t)) t = 0.0; else t += TEMP_OFFSET;
+  if (isnan(h)) h = 0.0; else h += HUM_OFFSET;
   doc["temp"] = t;
   doc["hum"] = h;
   
@@ -228,15 +227,11 @@ void receiveControlData() {
     int fan_pwm = doc["fan"];
     if (fan_pwm > 0) {
       digitalWrite(R_EN, HIGH);
-      digitalWrite(L_EN, HIGH); // KEDUA Enable harus HIGH agar arus bisa mengalir
       analogWrite(R_PWM, fan_pwm);
-      analogWrite(L_PWM, 0);    // Pastikan sisi kiri 0 (menjadi Ground)
       Serial.print("  -> Fan ON (PWM: "); Serial.print(fan_pwm); Serial.println(")");
     } else {
       digitalWrite(R_EN, LOW);
-      digitalWrite(L_EN, LOW);  // Matikan kedua Enable
       analogWrite(R_PWM, 0);
-      analogWrite(L_PWM, 0);
     }
   }
 }

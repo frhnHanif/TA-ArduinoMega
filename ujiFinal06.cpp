@@ -11,11 +11,13 @@
 #define DHTPIN 26
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+const float TEMP_OFFSET = -1.52;
+const float HUM_OFFSET = -3.28;
 
 // --- MQ-135 ---
 #define MQ135_PIN A6
 const float RL = 1.0;      
-const float Ro = 12.0;     // Ganti jika diperlukan hasil kalibrasi Ro terbaru
+const float Ro = 0.662;     // Ganti jika diperlukan hasil kalibrasi Ro terbaru
 const float konstanta_A = 100.8504;
 const float konstanta_B = -2.45847;
 
@@ -137,11 +139,8 @@ void sendSensorData() {
   // -- 1. DHT22 --
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  
-  // Kalibrasi Regresi Linear
-  if (isnan(t)) t = 0.0; else t = (0.8198 * t) + 4.1421;
-  if (isnan(h)) h = 0.0; else h = (0.6249 * h) + 22.7425;
-  
+  if (isnan(t)) t = 0.0; else t += TEMP_OFFSET;
+  if (isnan(h)) h = 0.0; else h += HUM_OFFSET;
   doc["temp"] = t;
   doc["hum"] = h;
   

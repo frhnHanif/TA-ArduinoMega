@@ -11,6 +11,8 @@
 #define DHTPIN 26
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+const float TEMP_OFFSET = -1.52;
+const float HUM_OFFSET = -3.28;
 
 // --- MQ-135 ---
 #define MQ135_PIN A6
@@ -45,9 +47,12 @@ HX711_ADC biopond_lc[6] = {
   HX711_ADC(35, 37), HX711_ADC(39, 43), HX711_ADC(45, 47)
 };
 const float bio_cal[6] = {105.389900, 107.378623, 103.403343, 104.197036, 106.368423, 105.547973};
+// Tambahan: Nilai mentah (Tare Offset) saat rak kosong. GANTI DENGAN ANGKA ASLI NANTI!
+const long bio_tare[6] = {150000, 150000, 150000, 150000, 150000, 150000}; 
 
 HX711_ADC harvest_lc(49, 51);
 const float harvest_cal = 100.411346;
+const long harvest_tare = 150000; // Ganti dengan tare offset panen
 
 // --- AKTUATOR: MIST (RELAY ACTIVE LOW) ---
 const int mistPins[6] = {8, 9, 10, 11, 12, 13};
@@ -100,17 +105,19 @@ void setup() {
   dht.begin();
 
   // Inisialisasi Load Cell (HX711_ADC)
-  Serial.println("Memulai Tare pada 7 Load Cell (Pastikan Rak Kosong)...");
+  Serial.println("Memuat konfigurasi Load Cell (Tanpa Auto-Tare)...");
   
   for (int i = 0; i < 6; i++) {
     biopond_lc[i].begin();
-    // 2000ms waktu stabilisasi, true = auto-tare di awal
-    biopond_lc[i].start(2000, true); 
+    // 2000ms waktu stabilisasi, false = JANGAN auto-tare di awal
+    biopond_lc[i].start(2000, false); 
     biopond_lc[i].setCalFactor(bio_cal[i]);
+    biopond_lc[i].setTareOffset(bio_tare[i]); // Panggil titik nol permanen
   }
   harvest_lc.begin();
-  harvest_lc.start(2000, true);
+  harvest_lc.start(2000, false);
   harvest_lc.setCalFactor(harvest_cal);
+  harvest_lc.setTareOffset(harvest_tare);
 
   // Inisialisasi Aktuator Mist (Relay Active Low)
   for (int i = 0; i < 6; i++) {
@@ -137,11 +144,8 @@ void sendSensorData() {
   // -- 1. DHT22 --
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  
-  // Kalibrasi Regresi Linear
-  if (isnan(t)) t = 0.0; else t = (0.8198 * t) + 4.1421;
-  if (isnan(h)) h = 0.0; else h = (0.6249 * h) + 22.7425;
-  
+  if (isnan(t)) t = 0.0; else t += TEMP_OFFSET;
+  if (isnan(h)) h = 0.0; else h += HUM_OFFSET;
   doc["temp"] = t;
   doc["hum"] = h;
   
