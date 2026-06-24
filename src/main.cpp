@@ -15,9 +15,9 @@ DHT dht(DHTPIN, DHTTYPE);
 // --- MQ-135 ---
 #define MQ135_PIN A6
 const float RL = 1.0;      
-const float Ro = 12.0;     // Ganti jika diperlukan hasil kalibrasi Ro terbaru
-const float konstanta_A = 100.8504;
-const float konstanta_B = -2.45847;
+const float Ro = 0.66217143;     // Ganti jika diperlukan hasil kalibrasi Ro terbaru
+const float konstanta_A = 105.4619;
+const float konstanta_B = -2.56068;
 
 // --- SOIL MOISTURE (Struktur Kalibrasi Piecewise) ---
 struct SensorCalib {
@@ -35,7 +35,7 @@ SensorCalib listSensor[6] = {
   {A2, 464, 440, 414, 325, 235}, // SM3
   {A3, 464, 439, 408, 319, 230}, // SM4
   {A4, 451, 425, 395, 304, 213}, // SM5
-  {A5, 461, 434, 400, 318, 236}  // SM6
+  {A5, 795, 773, 750, 720, 540}  // SM6
 };
 
 // --- LOAD CELL (HX711_ADC) ---
