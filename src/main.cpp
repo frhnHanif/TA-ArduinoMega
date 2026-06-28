@@ -44,10 +44,10 @@ HX711_ADC biopond_lc[6] = {
   HX711_ADC(23, 25), HX711_ADC(27, 29), HX711_ADC(31, 33),
   HX711_ADC(35, 37), HX711_ADC(39, 43), HX711_ADC(45, 47)
 };
-const float bio_cal[6] = {105.389900, 107.378623, 103.403343, 104.197036, 106.368423, 105.547973};
+const float bio_cal[6] = {106.902572, 109.130043, 104.917930, 105.929824, 107.204376, 107.055374};
 
 HX711_ADC harvest_lc(49, 51);
-const float harvest_cal = 100.411346;
+const float harvest_cal = 103.758491;
 
 // --- AKTUATOR: MIST (RELAY ACTIVE LOW) ---
 const int mistPins[6] = {8, 9, 10, 11, 12, 13};
